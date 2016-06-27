@@ -26,3 +26,5 @@ deploy:
 addons:
   sauce_connect:
     tunnel_domains: localhost
+    on:
+      condition: $TEST_TARGET = browser
