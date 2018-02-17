@@ -150,6 +150,7 @@ function pollTestStatus(testIds) {
         return;
       }
 
+      console.log(test);
       if (test.result == null) {
         console.log("Browser %s completed without success!".red, test.platform.join(" "));
         failedTests++;
