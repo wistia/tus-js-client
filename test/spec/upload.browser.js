@@ -5,11 +5,13 @@ describe("tus", function () {
 
     beforeEach(function () {
       jasmine.Ajax.install();
+      SynchronousPromise.installGlobally();
       localStorage.clear();
     });
 
     afterEach(function () {
       jasmine.Ajax.uninstall();
+      SynchronousPromise.uninstallGlobally();
     });
 
     it("should resume an upload from a stored url", function (done) {
@@ -269,6 +271,345 @@ describe("tus", function () {
         expect(options.onError).toHaveBeenCalledWith(new Error("tus: cannot fetch `file.uri` as Blob, make sure the uri is correct and accessible. [object Object]"));
         done();
       });
+    });
+
+    it("should upload data from a reader", function (done) {
+      var reader = {
+        value: "hello world".split(''),
+        read: function() {
+          if (this.value) {
+            const value = this.value;
+            this.value = null;
+            return Promise.resolve({ value, done: false });
+          } else {
+            return Promise.resolve({ value: undefined, done: true });
+          }
+        },
+      };
+
+      var options = {
+        endpoint: "http://tus.io/uploads",
+        headers: {
+          Custom: "blargh"
+        },
+        metadata: {
+          foo: "hello",
+          bar: "world",
+          nonlatin: "słońce",
+          number: 100
+        },
+        withCredentials: true,
+        chunkSize: 100,
+        onProgress: function () {},
+        fingerprint: function () {}
+      };
+      spyOn(options, "fingerprint").and.returnValue("fingerprinted");
+      spyOn(options, "onProgress");
+
+      var upload = new tus.Upload(reader, options);
+      upload.start();
+
+      expect(options.fingerprint).toHaveBeenCalledWith(reader, upload.options);
+
+      var req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/uploads");
+      expect(req.method).toBe("POST");
+      expect(req.requestHeaders.Custom).toBe("blargh");
+      expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
+      expect(req.requestHeaders["Upload-Length"]).toBe(undefined);
+      expect(req.requestHeaders["Upload-Defer-Length"]).toBe(1);
+      if (isBrowser) expect(req.withCredentials).toBe(true);
+      if (isNode || (isBrowser && "btoa" in window)) {
+        expect(req.requestHeaders["Upload-Metadata"]).toBe("foo aGVsbG8=,bar d29ybGQ=,nonlatin c8WCb8WEY2U=,number MTAw");
+      }
+
+      req.respondWith({
+        status: 201,
+        responseHeaders: {
+          Location: "http://tus.io/uploads/blargh"
+        }
+      });
+
+      expect(upload.url).toBe("http://tus.io/uploads/blargh");
+
+      req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/uploads/blargh");
+      expect(req.method).toBe("PATCH");
+      expect(req.requestHeaders.Custom).toBe("blargh");
+      expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
+      expect(req.requestHeaders["Upload-Offset"]).toBe(0);
+      expect(req.contentType()).toBe("application/offset+octet-stream");
+      expect(req.params.length).toBe(11);
+      if (isBrowser) expect(req.withCredentials).toBe(true);
+
+      req.respondWith({
+        status: 204,
+        responseHeaders: {
+          "Upload-Offset": 11
+        }
+      });
+
+      expect(options.onProgress).toHaveBeenCalledWith(11, null);
+
+      req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/uploads/blargh");
+      expect(req.method).toBe("PATCH");
+      expect(req.requestHeaders.Custom).toBe("blargh");
+      expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
+      expect(req.requestHeaders["Upload-Offset"]).toBe(11);
+      expect(req.requestHeaders["Upload-Length"]).toBe(11);
+      expect(req.contentType()).toBe("application/offset+octet-stream");
+      expect(req.params).toBe(undefined);
+      if (isBrowser) expect(req.withCredentials).toBe(true);
+
+      req.respondWith({
+        status: 204,
+        responseHeaders: {
+          "Upload-Offset": 11
+        }
+      });
+
+      expect(options.onProgress).toHaveBeenCalledWith(11, 11);
+      done();
+    });
+
+    it("should upload a reader in chunks", function (done) {
+      var reader = {
+        value: "hello world".split(''),
+        read: function() {
+          if (this.value) {
+            const value = this.value;
+            this.value = null;
+            return Promise.resolve({ value, done: false });
+          } else {
+            return Promise.resolve({ value: undefined, done: true });
+          }
+        },
+      };
+
+      var options = {
+        endpoint: "http://tus.io/uploads",
+        headers: {
+          Custom: "blargh"
+        },
+        metadata: {
+          foo: "hello",
+          bar: "world",
+          nonlatin: "słońce",
+          number: 100
+        },
+        withCredentials: true,
+        chunkSize: 6,
+        onProgress: function () {},
+        fingerprint: function () {}
+      };
+      spyOn(options, "fingerprint").and.returnValue("fingerprinted");
+      spyOn(options, "onProgress");
+
+      var upload = new tus.Upload(reader, options);
+      upload.start();
+
+      expect(options.fingerprint).toHaveBeenCalledWith(reader, upload.options);
+
+      var req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/uploads");
+      expect(req.method).toBe("POST");
+      expect(req.requestHeaders.Custom).toBe("blargh");
+      expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
+      expect(req.requestHeaders["Upload-Length"]).toBe(undefined);
+      expect(req.requestHeaders["Upload-Defer-Length"]).toBe(1);
+      if (isBrowser) expect(req.withCredentials).toBe(true);
+      if (isNode || (isBrowser && "btoa" in window)) {
+        expect(req.requestHeaders["Upload-Metadata"]).toBe("foo aGVsbG8=,bar d29ybGQ=,nonlatin c8WCb8WEY2U=,number MTAw");
+      }
+
+      req.respondWith({
+        status: 201,
+        responseHeaders: {
+          Location: "http://tus.io/uploads/blargh"
+        }
+      });
+
+      expect(upload.url).toBe("http://tus.io/uploads/blargh");
+
+      req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/uploads/blargh");
+      expect(req.method).toBe("PATCH");
+      expect(req.requestHeaders.Custom).toBe("blargh");
+      expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
+      expect(req.requestHeaders["Upload-Offset"]).toBe(0);
+      expect(req.contentType()).toBe("application/offset+octet-stream");
+      expect(req.params.length).toBe(6);
+      if (isBrowser) expect(req.withCredentials).toBe(true);
+
+      req.respondWith({
+        status: 204,
+        responseHeaders: {
+          "Upload-Offset": 6
+        }
+      });
+
+      expect(options.onProgress).toHaveBeenCalledWith(6, null);
+
+      req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/uploads/blargh");
+      expect(req.method).toBe("PATCH");
+      expect(req.requestHeaders.Custom).toBe("blargh");
+      expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
+      expect(req.requestHeaders["Upload-Offset"]).toBe(6);
+      expect(req.contentType()).toBe("application/offset+octet-stream");
+      expect(req.params.length).toBe(5);
+      if (isBrowser) expect(req.withCredentials).toBe(true);
+
+      req.respondWith({
+        status: 204,
+        responseHeaders: {
+          "Upload-Offset": 11
+        }
+      });
+
+      expect(options.onProgress).toHaveBeenCalledWith(11, null);
+
+      req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/uploads/blargh");
+      expect(req.method).toBe("PATCH");
+      expect(req.requestHeaders.Custom).toBe("blargh");
+      expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
+      expect(req.requestHeaders["Upload-Offset"]).toBe(11);
+      expect(req.requestHeaders["Upload-Length"]).toBe(11);
+      expect(req.contentType()).toBe("application/offset+octet-stream");
+      expect(req.params).toBe(undefined);
+      if (isBrowser) expect(req.withCredentials).toBe(true);
+
+      req.respondWith({
+        status: 204,
+        responseHeaders: {
+          "Upload-Offset": 11
+        }
+      });
+
+      expect(options.onProgress).toHaveBeenCalledWith(11, 11);
+      done();
+    });
+
+    it("should fill chunkSize from a reader", function (done) {
+      var reader = {
+        value: "hello world".split(''),
+        read: function() {
+          let value, done = false;
+          if (this.value.length > 0) {
+            value = this.value.slice(0,1);
+            this.value = this.value.slice(1);
+          } else {
+            done = true;
+          }
+          return Promise.resolve({ value, done });
+        },
+      };
+
+      var options = {
+        endpoint: "http://tus.io/uploads",
+        headers: {
+          Custom: "blargh"
+        },
+        metadata: {
+          foo: "hello",
+          bar: "world",
+          nonlatin: "słońce",
+          number: 100
+        },
+        withCredentials: true,
+        chunkSize: 6,
+        onProgress: function () {},
+        fingerprint: function () {}
+      };
+      spyOn(options, "fingerprint").and.returnValue("fingerprinted");
+      spyOn(options, "onProgress");
+
+      var upload = new tus.Upload(reader, options);
+      upload.start();
+
+      expect(options.fingerprint).toHaveBeenCalledWith(reader, upload.options);
+
+      var req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/uploads");
+      expect(req.method).toBe("POST");
+      expect(req.requestHeaders.Custom).toBe("blargh");
+      expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
+      expect(req.requestHeaders["Upload-Length"]).toBe(undefined);
+      expect(req.requestHeaders["Upload-Defer-Length"]).toBe(1);
+      if (isBrowser) expect(req.withCredentials).toBe(true);
+      if (isNode || (isBrowser && "btoa" in window)) {
+        expect(req.requestHeaders["Upload-Metadata"]).toBe("foo aGVsbG8=,bar d29ybGQ=,nonlatin c8WCb8WEY2U=,number MTAw");
+      }
+
+      req.respondWith({
+        status: 201,
+        responseHeaders: {
+          Location: "http://tus.io/uploads/blargh"
+        }
+      });
+
+      expect(upload.url).toBe("http://tus.io/uploads/blargh");
+
+      req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/uploads/blargh");
+      expect(req.method).toBe("PATCH");
+      expect(req.requestHeaders.Custom).toBe("blargh");
+      expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
+      expect(req.requestHeaders["Upload-Offset"]).toBe(0);
+      expect(req.contentType()).toBe("application/offset+octet-stream");
+      expect(req.params.length).toBe(6);
+      if (isBrowser) expect(req.withCredentials).toBe(true);
+
+      req.respondWith({
+        status: 204,
+        responseHeaders: {
+          "Upload-Offset": 6
+        }
+      });
+
+      expect(options.onProgress).toHaveBeenCalledWith(6, null);
+
+      req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/uploads/blargh");
+      expect(req.method).toBe("PATCH");
+      expect(req.requestHeaders.Custom).toBe("blargh");
+      expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
+      expect(req.requestHeaders["Upload-Offset"]).toBe(6);
+      expect(req.contentType()).toBe("application/offset+octet-stream");
+      expect(req.params.length).toBe(5);
+      if (isBrowser) expect(req.withCredentials).toBe(true);
+
+      req.respondWith({
+        status: 204,
+        responseHeaders: {
+          "Upload-Offset": 11
+        }
+      });
+
+      expect(options.onProgress).toHaveBeenCalledWith(11, null);
+
+      req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/uploads/blargh");
+      expect(req.method).toBe("PATCH");
+      expect(req.requestHeaders.Custom).toBe("blargh");
+      expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
+      expect(req.requestHeaders["Upload-Offset"]).toBe(11);
+      expect(req.requestHeaders["Upload-Length"]).toBe(11);
+      expect(req.contentType()).toBe("application/offset+octet-stream");
+      expect(req.params).toBe(undefined);
+      if (isBrowser) expect(req.withCredentials).toBe(true);
+
+      req.respondWith({
+        status: 204,
+        responseHeaders: {
+          "Upload-Offset": 11
+        }
+      });
+
+      expect(options.onProgress).toHaveBeenCalledWith(11, 11);
+      done();
     });
   });
 });
