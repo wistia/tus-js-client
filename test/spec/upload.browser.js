@@ -1,4 +1,4 @@
-/* global Blob tus */
+/* global Blob tus SynchronousPromise */
 
 describe("tus", function () {
   describe("#Upload", function () {
@@ -275,8 +275,8 @@ describe("tus", function () {
 
     it("should upload data from a reader", function (done) {
       var reader = {
-        value: "hello world".split(''),
-        read: function() {
+        value: "hello world".split(""),
+        read: function () {
           if (this.value) {
             const value = this.value;
             this.value = null;
@@ -284,7 +284,7 @@ describe("tus", function () {
           } else {
             return Promise.resolve({ value: undefined, done: true });
           }
-        },
+        }
       };
 
       var options = {
@@ -318,8 +318,8 @@ describe("tus", function () {
       expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
       expect(req.requestHeaders["Upload-Length"]).toBe(undefined);
       expect(req.requestHeaders["Upload-Defer-Length"]).toBe(1);
-      if (isBrowser) expect(req.withCredentials).toBe(true);
-      if (isNode || (isBrowser && "btoa" in window)) {
+      expect(req.withCredentials).toBe(true);
+      if ("btoa" in window) {
         expect(req.requestHeaders["Upload-Metadata"]).toBe("foo aGVsbG8=,bar d29ybGQ=,nonlatin c8WCb8WEY2U=,number MTAw");
       }
 
@@ -340,7 +340,7 @@ describe("tus", function () {
       expect(req.requestHeaders["Upload-Offset"]).toBe(0);
       expect(req.contentType()).toBe("application/offset+octet-stream");
       expect(req.params.length).toBe(11);
-      if (isBrowser) expect(req.withCredentials).toBe(true);
+      expect(req.withCredentials).toBe(true);
 
       req.respondWith({
         status: 204,
@@ -360,7 +360,7 @@ describe("tus", function () {
       expect(req.requestHeaders["Upload-Length"]).toBe(11);
       expect(req.contentType()).toBe("application/offset+octet-stream");
       expect(req.params).toBe(undefined);
-      if (isBrowser) expect(req.withCredentials).toBe(true);
+      expect(req.withCredentials).toBe(true);
 
       req.respondWith({
         status: 204,
@@ -375,8 +375,8 @@ describe("tus", function () {
 
     it("should upload a reader in chunks", function (done) {
       var reader = {
-        value: "hello world".split(''),
-        read: function() {
+        value: "hello world".split(""),
+        read: function () {
           if (this.value) {
             const value = this.value;
             this.value = null;
@@ -384,7 +384,7 @@ describe("tus", function () {
           } else {
             return Promise.resolve({ value: undefined, done: true });
           }
-        },
+        }
       };
 
       var options = {
@@ -418,8 +418,8 @@ describe("tus", function () {
       expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
       expect(req.requestHeaders["Upload-Length"]).toBe(undefined);
       expect(req.requestHeaders["Upload-Defer-Length"]).toBe(1);
-      if (isBrowser) expect(req.withCredentials).toBe(true);
-      if (isNode || (isBrowser && "btoa" in window)) {
+      expect(req.withCredentials).toBe(true);
+      if ("btoa" in window) {
         expect(req.requestHeaders["Upload-Metadata"]).toBe("foo aGVsbG8=,bar d29ybGQ=,nonlatin c8WCb8WEY2U=,number MTAw");
       }
 
@@ -440,7 +440,7 @@ describe("tus", function () {
       expect(req.requestHeaders["Upload-Offset"]).toBe(0);
       expect(req.contentType()).toBe("application/offset+octet-stream");
       expect(req.params.length).toBe(6);
-      if (isBrowser) expect(req.withCredentials).toBe(true);
+      expect(req.withCredentials).toBe(true);
 
       req.respondWith({
         status: 204,
@@ -459,7 +459,7 @@ describe("tus", function () {
       expect(req.requestHeaders["Upload-Offset"]).toBe(6);
       expect(req.contentType()).toBe("application/offset+octet-stream");
       expect(req.params.length).toBe(5);
-      if (isBrowser) expect(req.withCredentials).toBe(true);
+      expect(req.withCredentials).toBe(true);
 
       req.respondWith({
         status: 204,
@@ -479,7 +479,7 @@ describe("tus", function () {
       expect(req.requestHeaders["Upload-Length"]).toBe(11);
       expect(req.contentType()).toBe("application/offset+octet-stream");
       expect(req.params).toBe(undefined);
-      if (isBrowser) expect(req.withCredentials).toBe(true);
+      expect(req.withCredentials).toBe(true);
 
       req.respondWith({
         status: 204,
@@ -494,8 +494,8 @@ describe("tus", function () {
 
     it("should fill chunkSize from a reader", function (done) {
       var reader = {
-        value: "hello world".split(''),
-        read: function() {
+        value: "hello world".split(""),
+        read: function () {
           let value, done = false;
           if (this.value.length > 0) {
             value = this.value.slice(0,1);
@@ -504,7 +504,7 @@ describe("tus", function () {
             done = true;
           }
           return Promise.resolve({ value, done });
-        },
+        }
       };
 
       var options = {
@@ -538,8 +538,8 @@ describe("tus", function () {
       expect(req.requestHeaders["Tus-Resumable"]).toBe("1.0.0");
       expect(req.requestHeaders["Upload-Length"]).toBe(undefined);
       expect(req.requestHeaders["Upload-Defer-Length"]).toBe(1);
-      if (isBrowser) expect(req.withCredentials).toBe(true);
-      if (isNode || (isBrowser && "btoa" in window)) {
+      expect(req.withCredentials).toBe(true);
+      if ("btoa" in window) {
         expect(req.requestHeaders["Upload-Metadata"]).toBe("foo aGVsbG8=,bar d29ybGQ=,nonlatin c8WCb8WEY2U=,number MTAw");
       }
 
@@ -560,7 +560,7 @@ describe("tus", function () {
       expect(req.requestHeaders["Upload-Offset"]).toBe(0);
       expect(req.contentType()).toBe("application/offset+octet-stream");
       expect(req.params.length).toBe(6);
-      if (isBrowser) expect(req.withCredentials).toBe(true);
+      expect(req.withCredentials).toBe(true);
 
       req.respondWith({
         status: 204,
@@ -579,7 +579,7 @@ describe("tus", function () {
       expect(req.requestHeaders["Upload-Offset"]).toBe(6);
       expect(req.contentType()).toBe("application/offset+octet-stream");
       expect(req.params.length).toBe(5);
-      if (isBrowser) expect(req.withCredentials).toBe(true);
+      expect(req.withCredentials).toBe(true);
 
       req.respondWith({
         status: 204,
@@ -599,7 +599,7 @@ describe("tus", function () {
       expect(req.requestHeaders["Upload-Length"]).toBe(11);
       expect(req.contentType()).toBe("application/offset+octet-stream");
       expect(req.params).toBe(undefined);
-      if (isBrowser) expect(req.withCredentials).toBe(true);
+      expect(req.withCredentials).toBe(true);
 
       req.respondWith({
         status: 204,

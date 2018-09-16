@@ -6,7 +6,7 @@
 var upload          = null;
 var uploadIsRunning = false;
 var toggleBtn       = document.querySelector("#toggle-btn");
-var recordBtn       = document.querySelector("#record-btn")
+var recordBtn       = document.querySelector("#record-btn");
 var resumeCheckbox  = document.querySelector("#resume");
 var input           = document.querySelector("input[type=file]");
 var progress        = document.querySelector(".progress");
@@ -52,10 +52,10 @@ recordBtn.addEventListener("click", function (e) {
   console.log({stopRecording});
   e.preventDefault();
   if (upload) {
-    recordBtn.textContent = 'start recording'
+    recordBtn.textContent = "start recording";
     stopRecording();
   } else {
-    recordBtn.textContent = 'stop recording'
+    recordBtn.textContent = "stop recording";
     startStreamUpload();
   }
 });
@@ -101,12 +101,12 @@ function startUpload(file) {
     },
     onSuccess: function () {
       var listItem = document.createElement("li");
-      if (upload.file.type.startsWith('video')) {
+      if (upload.file.type.startsWith("video")) {
         var video = document.createElement("video");
         video.controls = true;
         video.height = 100;
         video.src = upload.url;
-        listItem.appendChild(video)
+        listItem.appendChild(video);
       } else {
         var anchor = document.createElement("a");
         anchor.textContent = "Download " + upload.file.name + " (" + upload.file.size + " bytes)";
@@ -131,14 +131,12 @@ function startStreamUpload() {
 
     const chunks = [];
     let done = false;
-    mr.onerror = e => { console.log('onerror', e); };
-    mr.onstop = e => { console.log('onstop', e); done = true; };
+    mr.onerror = e => { console.log("onerror", e); };
+    mr.onstop = () => { done = true; };
     mr.ondataavailable = e => {
-      console.log('ondataavailable', e.data);
       chunks.push(e.data);
       if (onDataAvailable) {
-        console.log('resolving waiting read')
-        onDataAvailable(readableRecorder.read())
+        onDataAvailable(readableRecorder.read());
         onDataAvailable = undefined;
       }
     };
@@ -152,13 +150,13 @@ function startStreamUpload() {
         }
 
         if (chunks.length > 0) {
-          return Promise.resolve({ value: chunks.shift(), done: false })
+          return Promise.resolve({ value: chunks.shift(), done: false });
         }
 
         return new Promise((resolve) => { onDataAvailable = resolve; });
       },
       name: `foo${Math.random()}.webm`,
-      type: 'video/webm',
+      type: "video/webm"
     };
 
     startUpload(readableRecorder);
