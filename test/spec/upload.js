@@ -6,7 +6,7 @@ if (isNode) {
   // SpecRunner.html, but in Node we have to require them.
   var axios = require("axios");
   var tus = require("../../");
-  var { SynchronousPromise } = require("synchronous-promise");
+  var SynchronousPromise = require("synchronous-promise").SynchronousPromise;
 
   // These tests use browser's Blob constructor. To make these tests also
   // work in Node.js, we make it an alias for Buffer, which have the same
