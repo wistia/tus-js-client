@@ -611,5 +611,166 @@ describe("tus", function () {
       expect(options.onProgress).toHaveBeenCalledWith(11, 11);
       done();
     });
+
+    it("should retry the upload with a reader", function (done) {
+      var reader = {
+        value: "hello world".split(""),
+        read: function () {
+          let value, done = false;
+          if (this.value.length > 0) {
+            value = this.value.slice(0,1);
+            this.value = this.value.slice(1);
+          } else {
+            done = true;
+          }
+          return Promise.resolve({ value, done });
+        }
+      };
+      var options = {
+        endpoint: "http://tus.io/files/",
+        chunkSize: 11,
+        retryDelays: [10, 10, 10],
+        onSuccess: function () {}
+      };
+
+      spyOn(options, "onSuccess");
+
+
+      var upload = new tus.Upload(reader, options);
+      upload.start();
+
+      var req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/files/");
+      expect(req.method).toBe("POST");
+
+      req.respondWith({
+        status: 500
+      });
+
+      setTimeout(function () {
+        req = jasmine.Ajax.requests.mostRecent();
+        expect(req.url).toBe("http://tus.io/files/");
+        expect(req.method).toBe("POST");
+
+        req.respondWith({
+          status: 201,
+          responseHeaders: {
+            Location: "/files/foo"
+          }
+        });
+
+        req = jasmine.Ajax.requests.mostRecent();
+        expect(req.url).toBe("http://tus.io/files/foo");
+        expect(req.method).toBe("PATCH");
+
+        req.respondWith({
+          status: 204,
+          responseHeaders: {
+            "Upload-Offset": 11
+          }
+        });
+
+        req = jasmine.Ajax.requests.mostRecent();
+        expect(req.url).toBe("http://tus.io/files/foo");
+        expect(req.method).toBe("PATCH");
+        expect(req.requestHeaders["Upload-Length"]).toBe(11);
+
+        req.respondWith({
+          status: 204,
+          responseHeaders: {
+            "Upload-Offset": 11
+          }
+        });
+
+        expect(options.onSuccess).toHaveBeenCalled();
+        done();
+      }, 20);
+    });
+
+    it("should retry failed chunks with a reader", function (done) {
+      var reader = {
+        value: "hello world".split(""),
+        read: function () {
+          let value, done = false;
+          if (this.value.length > 0) {
+            value = this.value.slice(0,1);
+            this.value = this.value.slice(1);
+          } else {
+            done = true;
+          }
+          return Promise.resolve({ value, done });
+        }
+      };
+      var options = {
+        endpoint: "http://tus.io/files/",
+        chunkSize: 11,
+        retryDelays: [10, 10, 10],
+        onSuccess: function () {}
+      };
+
+      spyOn(options, "onSuccess");
+
+
+      var upload = new tus.Upload(reader, options);
+      upload.start();
+
+      var req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/files/");
+      expect(req.method).toBe("POST");
+
+      req.respondWith({
+        status: 201,
+        responseHeaders: {
+          Location: "/files/foo"
+        }
+      });
+
+      req = jasmine.Ajax.requests.mostRecent();
+      expect(req.url).toBe("http://tus.io/files/foo");
+      expect(req.method).toBe("PATCH");
+
+      req.respondWith({
+        status: 500
+      });
+
+      setTimeout(function () {
+        req = jasmine.Ajax.requests.mostRecent();
+        expect(req.url).toBe("http://tus.io/files/foo");
+        expect(req.method).toBe("HEAD");
+
+        req.respondWith({
+          status: 204,
+          responseHeaders: {
+            "Upload-Offset": 0
+          }
+        });
+
+        req = jasmine.Ajax.requests.mostRecent();
+        expect(req.url).toBe("http://tus.io/files/foo");
+        expect(req.method).toBe("PATCH");
+
+        req.respondWith({
+          status: 204,
+          responseHeaders: {
+            "Upload-Offset": 11
+          }
+        });
+
+        req = jasmine.Ajax.requests.mostRecent();
+        expect(req.url).toBe("http://tus.io/files/foo");
+        expect(req.method).toBe("PATCH");
+        expect(req.requestHeaders["Upload-Length"]).toBe(11);
+
+        req.respondWith({
+          status: 204,
+          responseHeaders: {
+            "Upload-Offset": 11
+          }
+        });
+
+        expect(options.onSuccess).toHaveBeenCalled();
+        done();
+      }, 20);
+    });
   });
 });
