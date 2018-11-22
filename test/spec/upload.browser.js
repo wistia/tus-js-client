@@ -301,7 +301,8 @@ describe("tus", function () {
         withCredentials: true,
         chunkSize: 100,
         onProgress: function () {},
-        fingerprint: function () {}
+        fingerprint: function () {},
+        uploadLengthDeferred: true
       };
       spyOn(options, "fingerprint").and.returnValue("fingerprinted");
       spyOn(options, "onProgress");
@@ -401,7 +402,8 @@ describe("tus", function () {
         withCredentials: true,
         chunkSize: 6,
         onProgress: function () {},
-        fingerprint: function () {}
+        fingerprint: function () {},
+        uploadLengthDeferred: true
       };
       spyOn(options, "fingerprint").and.returnValue("fingerprinted");
       spyOn(options, "onProgress");
@@ -521,7 +523,8 @@ describe("tus", function () {
         withCredentials: true,
         chunkSize: 6,
         onProgress: function () {},
-        fingerprint: function () {}
+        fingerprint: function () {},
+        uploadLengthDeferred: true
       };
       spyOn(options, "fingerprint").and.returnValue("fingerprinted");
       spyOn(options, "onProgress");
@@ -630,7 +633,8 @@ describe("tus", function () {
         endpoint: "http://tus.io/files/",
         chunkSize: 11,
         retryDelays: [10, 10, 10],
-        onSuccess: function () {}
+        onSuccess: function () {},
+        uploadLengthDeferred: true
       };
 
       spyOn(options, "onSuccess");
@@ -705,7 +709,8 @@ describe("tus", function () {
         endpoint: "http://tus.io/files/",
         chunkSize: 11,
         retryDelays: [10, 10, 10],
-        onSuccess: function () {}
+        onSuccess: function () {},
+        uploadLengthDeferred: true
       };
 
       spyOn(options, "onSuccess");
