@@ -63,7 +63,8 @@ recordBtn.addEventListener("click", function (e) {
 input.addEventListener("change", startFileUpload);
 
 
-function startUpload(file) {
+function startUpload(file, passedOptions) {
+  passedOptions = passedOptions || {};
   var endpoint = endpointInput.value;
   var chunkSize = parseInt(chunkInput.value, 10);
   if (isNaN(chunkSize)) {
@@ -119,6 +120,8 @@ function startUpload(file) {
     }
   };
 
+  Object.assign(options, passedOptions);
+
   upload = new tus.Upload(file, options);
   upload.start();
   uploadIsRunning = true;
@@ -159,7 +162,7 @@ function startStreamUpload() {
       type: "video/webm"
     };
 
-    startUpload(readableRecorder);
+    startUpload(readableRecorder, {uploadLengthDeferred: true});
 
     stopRecording = () => {
       stream.getTracks().forEach(t => t.stop());
