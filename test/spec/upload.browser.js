@@ -813,5 +813,38 @@ describe("tus", function () {
         done();
       }, 20);
     });
+
+    it("should cancel  the reader when aborted", function (done) {
+      var reader = {
+        value: "hello there world!".split(""),
+        read: function () {
+          let value, done = false;
+          if (this.value) {
+            value = this.value;
+            this.value = undefined;
+          } else {
+            done = true;
+          }
+          return Promise.resolve({ value, done });
+        },
+        cancel: function () {}
+      };
+      spyOn(reader, "cancel");
+
+      var options = {
+        endpoint: "http://tus.io/files/",
+        chunkSize: 6,
+        retryDelays: [10, 10, 10],
+        onSuccess: function () {},
+        uploadLengthDeferred: true
+      };
+
+      var upload = new tus.Upload(reader, options);
+      upload.start();
+      upload.abort();
+
+      expect(reader.cancel).toHaveBeenCalled();
+      done();
+    });
   });
 });
